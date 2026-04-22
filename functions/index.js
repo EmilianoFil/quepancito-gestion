@@ -1,5 +1,5 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 
@@ -118,6 +118,31 @@ exports.onMovimientoCreated = onDocumentCreated('movimientos/{movId}', async (ev
     // egreso = pago al proveedor → reduce lo que debemos
     // ingreso (devolución) → aumenta lo que debemos
     const delta = data.tipo === 'egreso' ? -data.monto : data.monto;
+    batch.update(db.doc(`proveedores/${data.proveedorId}`), { saldoCuentaCorriente: increment(delta) });
+  }
+
+  await batch.commit();
+});
+
+// ── onMovimientoDeleted — revierte saldos al eliminar ────────────────────────
+
+exports.onMovimientoDeleted = onDocumentDeleted('movimientos/{movId}', async (event) => {
+  const data = event.data?.data();
+  if (!data) return;
+
+  const batch = db.batch();
+  const increment = admin.firestore.FieldValue.increment;
+
+  if (data.cuentaId) {
+    const delta = data.tipo === 'ingreso' ? -data.monto : data.monto;
+    batch.update(db.doc(`cuentas/${data.cuentaId}`), { saldo: increment(delta) });
+  }
+  if (data.clienteId) {
+    const delta = data.tipo === 'ingreso' ? data.monto : -data.monto;
+    batch.update(db.doc(`clientes/${data.clienteId}`), { saldoCuentaCorriente: increment(delta) });
+  }
+  if (data.proveedorId) {
+    const delta = data.tipo === 'egreso' ? data.monto : -data.monto;
     batch.update(db.doc(`proveedores/${data.proveedorId}`), { saldoCuentaCorriente: increment(delta) });
   }
 
