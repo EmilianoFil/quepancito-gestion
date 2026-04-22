@@ -1,6 +1,5 @@
 import { spinner } from './ui.js';
 import { store } from './store.js';
-import { can } from './auth.js';
 
 const ROUTES = {
   '/dashboard':    () => import('./modules/dashboard.js'),
@@ -44,12 +43,12 @@ class Router {
 
     if (!loader) { this.navigate('/dashboard'); return; }
 
-    // Permission check
+    // Permission check (inlined to avoid circular dep with auth.js)
     const perm = ROUTE_PERMS[path];
     const user = store.state.user;
-    if (perm && user && user.role !== 'admin' && !can(perm, 'read')) {
-      this.navigate('/dashboard');
-      return;
+    if (perm && user && user.role !== 'admin') {
+      const p = user.permissions?.[perm] ?? 'none';
+      if (p === 'none') { this.navigate('/dashboard'); return; }
     }
 
     store.setRoute(path);

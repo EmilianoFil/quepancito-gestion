@@ -5,9 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { store } from './store.js';
-import { router } from './router.js';
 import { toast } from './ui.js';
-import { renderLogin } from './modules/login.js';
 
 export async function initAuth() {
   return new Promise(resolve => {
@@ -18,7 +16,7 @@ export async function initAuth() {
           store.setUser({ uid: user.uid, email: user.email, displayName: user.displayName, ...snap.data() });
           showApp();
           const hash = window.location.hash.slice(1);
-          router.navigate(hash && hash !== '/' ? hash : '/dashboard');
+          window.location.hash = (hash && hash !== '/') ? hash : '/dashboard';
         } else {
           await signOut(auth);
           store.setUser(null);
@@ -40,9 +38,10 @@ function showApp() {
   updateNav();
 }
 
-function showLogin() {
+async function showLogin() {
   document.getElementById('auth-screen').hidden = false;
   document.getElementById('app-shell').hidden = true;
+  const { renderLogin } = await import('./modules/login.js');
   renderLogin(document.getElementById('auth-screen'));
 }
 
