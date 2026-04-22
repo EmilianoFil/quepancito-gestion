@@ -3,13 +3,198 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QuePancito - Gestión</title>
+  <title>QuePancito — Gestión</title>
   <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥖</text></svg>" />
 </head>
 <body>
-  <div id="app">
-    <div id="loading">Cargando...</div>
+
+<!-- ── Auth Screen ─────────────────────────────────────────────────────────── -->
+<div id="auth-screen"></div>
+
+<!-- ── App Shell ──────────────────────────────────────────────────────────── -->
+<div id="app-shell" hidden>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🥖</span>
+      <span class="logo-text">QuePancito</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-route="/dashboard">
+        <span class="nav-icon" id="icon-dashboard"></span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+
+      <div class="nav-section-label">Comercial</div>
+
+      <a class="nav-item" data-route="/clientes" data-perm="clientes">
+        <span class="nav-icon" id="icon-clientes"></span>
+        <span class="nav-label">Clientes</span>
+      </a>
+      <a class="nav-item" data-route="/proveedores" data-perm="proveedores">
+        <span class="nav-icon" id="icon-proveedores"></span>
+        <span class="nav-label">Proveedores</span>
+      </a>
+      <a class="nav-item" data-route="/cuentas" data-perm="cuentas">
+        <span class="nav-icon" id="icon-cuentas"></span>
+        <span class="nav-label">Cuentas</span>
+      </a>
+
+      <div class="nav-section-label">Operaciones</div>
+
+      <a class="nav-item" data-route="/movimientos" data-perm="movimientos">
+        <span class="nav-icon" id="icon-movimientos"></span>
+        <span class="nav-label">Movimientos</span>
+      </a>
+      <a class="nav-item" data-route="/insumos" data-perm="insumos">
+        <span class="nav-icon" id="icon-insumos"></span>
+        <span class="nav-label">Insumos</span>
+      </a>
+      <a class="nav-item" data-route="/productos" data-perm="productos">
+        <span class="nav-icon" id="icon-productos"></span>
+        <span class="nav-label">Productos</span>
+      </a>
+      <a class="nav-item" data-route="/stock" data-perm="stock">
+        <span class="nav-icon" id="icon-stock"></span>
+        <span class="nav-label">Stock</span>
+      </a>
+
+      <div class="nav-section-label">Personal</div>
+
+      <a class="nav-item" data-route="/empleados" data-perm="empleados">
+        <span class="nav-icon" id="icon-empleados"></span>
+        <span class="nav-label">Empleados</span>
+      </a>
+
+      <div class="nav-section-label">Análisis</div>
+
+      <a class="nav-item" data-route="/reportes" data-perm="reportes">
+        <span class="nav-icon" id="icon-reportes"></span>
+        <span class="nav-label">Reportes</span>
+      </a>
+
+      <div class="nav-section-label nav-admin-section" data-admin>Admin</div>
+
+      <a class="nav-item" data-route="/categorias" data-admin>
+        <span class="nav-icon" id="icon-categorias"></span>
+        <span class="nav-label">Categorías</span>
+      </a>
+      <a class="nav-item" data-route="/usuarios" data-admin>
+        <span class="nav-icon" id="icon-usuarios"></span>
+        <span class="nav-label">Usuarios</span>
+      </a>
+      <a class="nav-item" data-route="/config" data-admin>
+        <span class="nav-icon" id="icon-config"></span>
+        <span class="nav-label">Configuración</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebar-avatar">U</div>
+        <div class="user-info">
+          <span class="user-name" id="sidebar-user-name">—</span>
+          <span class="user-email" id="sidebar-user-email">—</span>
+        </div>
+      </div>
+      <button class="btn-icon logout-btn" id="btn-logout" title="Cerrar sesión">
+        <span id="icon-logout"></span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div id="main-wrapper">
+    <header id="topbar">
+      <button class="btn-icon" id="menu-toggle">
+        <span id="icon-menu"></span>
+      </button>
+      <div class="topbar-logo">
+        <span class="logo-icon">🥖</span>
+        <span class="logo-text">QuePancito</span>
+      </div>
+      <div class="topbar-right">
+        <div class="user-avatar-sm" id="topbar-avatar"></div>
+      </div>
+    </header>
+
+    <main id="page-content"></main>
   </div>
-  <script type="module" src="js/app.js"></script>
+
+  <!-- Bottom nav (mobile) -->
+  <nav id="bottom-nav">
+    <a class="bn-item" data-route="/dashboard">
+      <span id="bn-icon-dashboard"></span>
+      <span>Inicio</span>
+    </a>
+    <a class="bn-item" data-route="/movimientos">
+      <span id="bn-icon-movimientos"></span>
+      <span>Movimientos</span>
+    </a>
+    <a class="bn-item" data-route="/clientes">
+      <span id="bn-icon-clientes"></span>
+      <span>Clientes</span>
+    </a>
+    <a class="bn-item" data-route="/reportes">
+      <span id="bn-icon-reportes"></span>
+      <span>Reportes</span>
+    </a>
+    <a class="bn-item" id="bn-menu">
+      <span id="bn-icon-menu"></span>
+      <span>Más</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- ── Toasts ──────────────────────────────────────────────────────────────── -->
+<div id="toasts" aria-live="polite"></div>
+
+<!-- ── Modal ──────────────────────────────────────────────────────────────── -->
+<div id="modal-backdrop" hidden>
+  <div id="modal-container"></div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+<script type="module">
+  import { icon, icons } from './js/icons.js';
+
+  const iconMap = {
+    'icon-dashboard': 'grid', 'icon-clientes': 'users', 'icon-proveedores': 'truck',
+    'icon-cuentas': 'wallet', 'icon-movimientos': 'arrowsLR', 'icon-insumos': 'layers',
+    'icon-productos': 'package', 'icon-stock': 'archive', 'icon-empleados': 'userCheck',
+    'icon-reportes': 'barChart', 'icon-categorias': 'tag', 'icon-usuarios': 'shield',
+    'icon-config': 'settings', 'icon-logout': 'logOut', 'icon-menu': 'menu',
+    'bn-icon-dashboard': 'home', 'bn-icon-movimientos': 'arrowsLR',
+    'bn-icon-clientes': 'users', 'bn-icon-reportes': 'barChart', 'bn-icon-menu': 'menu',
+  };
+
+  Object.entries(iconMap).forEach(([id, name]) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = icon(name);
+  });
+
+  // Bottom nav "Más" opens sidebar
+  document.getElementById('bn-menu')?.addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('visible');
+  });
+
+  // Sync topbar avatar with sidebar
+  const obs = new MutationObserver(() => {
+    const t = document.getElementById('topbar-avatar');
+    const s = document.getElementById('sidebar-avatar');
+    if (t && s) t.textContent = s.textContent;
+  });
+  const sa = document.getElementById('sidebar-avatar');
+  if (sa) obs.observe(sa, { childList: true, characterData: true, subtree: true });
+</script>
+
 </body>
 </html>

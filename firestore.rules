@@ -1,8 +1,120 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuth() && userDoc().role == 'admin';
+    }
+
+    function canRead(section) {
+      let u = userDoc();
+      return u.role == 'admin' || u.permissions.get(section, 'none') in ['read', 'write'];
+    }
+
+    function canWrite(section) {
+      let u = userDoc();
+      return u.role == 'admin' || u.permissions.get(section, 'none') == 'write';
+    }
+
+    match /users/{userId} {
+      allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (request.auth.uid == userId &&
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions']));
+      allow delete: if isAdmin();
+    }
+
+    match /clientes/{id} {
+      allow read: if isAuth() && canRead('clientes');
+      allow write: if isAuth() && canWrite('clientes');
+      match /movimientos/{mId} {
+        allow read: if isAuth() && canRead('clientes');
+        allow write: if isAuth() && canWrite('movimientos');
+      }
+    }
+
+    match /proveedores/{id} {
+      allow read: if isAuth() && canRead('proveedores');
+      allow write: if isAuth() && canWrite('proveedores');
+      match /movimientos/{mId} {
+        allow read: if isAuth() && canRead('proveedores');
+        allow write: if isAuth() && canWrite('movimientos');
+      }
+    }
+
+    match /empleados/{id} {
+      allow read: if isAuth() && canRead('empleados');
+      allow write: if isAuth() && canWrite('empleados');
+      match /sueldos/{sId} {
+        allow read: if isAuth() && canRead('empleados');
+        allow write: if isAuth() && canWrite('empleados');
+      }
+    }
+
+    match /insumos/{id} {
+      allow read: if isAuth() && canRead('insumos');
+      allow write: if isAuth() && canWrite('insumos');
+      match /precios/{pId} {
+        allow read: if isAuth() && canRead('insumos');
+        allow write: if isAuth() && canWrite('insumos');
+      }
+    }
+
+    match /productos/{id} {
+      allow read: if isAuth() && canRead('productos');
+      allow write: if isAuth() && canWrite('productos');
+      match /receta/{rId} {
+        allow read: if isAuth() && canRead('productos');
+        allow write: if isAuth() && canWrite('productos');
+      }
+    }
+
+    match /movimientos/{id} {
+      allow read: if isAuth() && canRead('movimientos');
+      allow write: if isAuth() && canWrite('movimientos');
+    }
+
+    match /cuentas/{id} {
+      allow read: if isAuth() && canRead('cuentas');
+      allow write: if isAuth() && canWrite('cuentas');
+      match /movimientos/{mId} {
+        allow read: if isAuth() && canRead('cuentas');
+        allow write: if isAuth() && canWrite('movimientos');
+      }
+    }
+
+    match /stock/{id} {
+      allow read: if isAuth() && canRead('stock');
+      allow write: if isAuth() && canWrite('stock');
+    }
+
+    match /stockMovimientos/{id} {
+      allow read: if isAuth() && canRead('stock');
+      allow write: if isAuth() && canWrite('stock');
+    }
+
+    match /produccion/{id} {
+      allow read: if isAuth() && canRead('stock');
+      allow write: if isAuth() && canWrite('stock');
+    }
+
+    match /categorias/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /config/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
     }
   }
 }
