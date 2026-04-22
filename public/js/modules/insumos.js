@@ -172,7 +172,7 @@ function openInsumoModal(insumo = null) {
         toast('Insumo actualizado.', 'success');
       } else {
         const ref = await addDoc(collection(db, 'insumos'), { ...data, ...meta(user) });
-        await addDoc(collection(db, ref.id, 'precios'), {
+        await addDoc(collection(db, 'insumos', ref.id, 'precios'), {
           precio,
           precioAnterior: null,
           fecha: new Date(),
