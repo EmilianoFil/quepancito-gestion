@@ -55,6 +55,21 @@
         { "fieldPath": "cuentaId", "order": "ASCENDING" },
         { "fieldPath": "fecha", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "stockMovimientos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "insumoId", "order": "ASCENDING" },
+        { "fieldPath": "fecha", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "movimientos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -345,6 +345,13 @@ ul { list-style: none; }
 .stat-positive { color: var(--c-success) !important; }
 .stat-negative { color: var(--c-error) !important; }
 
+/* Report two-column grid */
+.report-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
 /* ─── Buttons ────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
@@ -676,6 +683,7 @@ td.actions { width: 1px; white-space: nowrap; }
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .span-2 { grid-column: span 1; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
+  .report-grid { grid-template-columns: 1fr; }
   .page-header { flex-direction: column; align-items: flex-start; }
 
   #modal-backdrop { padding: 0; align-items: flex-end; }
