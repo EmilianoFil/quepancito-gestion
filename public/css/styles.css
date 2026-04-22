@@ -214,13 +214,18 @@ ul { list-style: none; }
 .bn-item.active, .bn-item:hover { color: var(--c-primary); }
 
 /* ─── Auth Screen ────────────────────────────────────────────────────────── */
+[hidden] { display: none !important; }
+
 #auth-screen {
-  min-height: 100dvh;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #1A100A 0%, #2C1A10 50%, #3D2418 100%);
   padding: 24px;
+  overflow-y: auto;
 }
 
 .login-card {
