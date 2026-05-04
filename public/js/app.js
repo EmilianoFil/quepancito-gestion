@@ -1,55 +1,102 @@
-import { initAuth, logout, updateNav } from './auth.js';
+import { initAuth, logout } from './auth.js';
 import { router } from './router.js';
-import { icon } from './icons.js';
 
 async function init() {
   setupSidebarToggle();
-  setupMobileTableLabels();
+  setupMobileCards();
   await initAuth();
   router.init();
 }
 
 /**
- * On mobile, tables are transformed to labeled card stacks via CSS.
- * This function reads column headers from <thead> and injects:
- *   - data-label="Header text" on each <td> (except first col and actions)
- *   - <span class="td-val"> wrapping the td content (for flex layout)
- * Runs automatically via MutationObserver whenever page content changes.
+ * On mobile (≤767px), replaces every <table> with clean card divs.
+ * DOM nodes are MOVED (not cloned) so all event listeners are preserved.
+ * Cards structure:
+ *   .m-card
+ *     .m-card-title   ← first td content
+ *     .m-card-row     ← one per middle td, with label + value
+ *       .m-card-label
+ *       .m-card-val
+ *     .m-card-actions ← td.actions content
  */
-function setupMobileTableLabels() {
+function setupMobileCards() {
   const content = document.getElementById('page-content');
   if (!content) return;
 
-  function applyLabels() {
-    content.querySelectorAll('table').forEach(table => {
+  function convertTables() {
+    if (window.innerWidth > 767) return;
+
+    // Only target tables not yet converted
+    content.querySelectorAll('table:not([data-m])').forEach(table => {
+      table.dataset.m = '1';
+
       const headers = [...table.querySelectorAll('thead th')]
         .map(th => th.textContent.trim());
 
+      const cards = [];
+
       table.querySelectorAll('tbody tr').forEach(tr => {
-        [...tr.querySelectorAll('td')].forEach((td, i) => {
-          // Skip: first column (title), actions (by class OR by content), already processed
-          if (i === 0) return;
-          if (td.classList.contains('actions')) return;
-          if (td.querySelector('.td-actions, [data-action]')) return; // extra guard
-          if (td.querySelector('.td-val')) return; // already done
+        const tds = [...tr.querySelectorAll(':scope > td')];
+        if (!tds.length) return;
+
+        const card = document.createElement('div');
+        card.className = 'm-card';
+
+        // ── Title: first td ──────────────────────────────
+        const titleEl = document.createElement('div');
+        titleEl.className = 'm-card-title';
+        while (tds[0].firstChild) titleEl.appendChild(tds[0].firstChild);
+        card.appendChild(titleEl);
+
+        // ── Middle tds + actions ─────────────────────────
+        for (let i = 1; i < tds.length; i++) {
+          const td = tds[i];
+          const isActions = td.classList.contains('actions')
+            || !!td.querySelector('.td-actions, [data-action]');
+
+          if (isActions) {
+            const footer = document.createElement('div');
+            footer.className = 'm-card-actions';
+            while (td.firstChild) footer.appendChild(td.firstChild);
+            card.appendChild(footer);
+            continue;
+          }
 
           const label = headers[i];
-          if (!label) return;
+          if (!label) continue;
 
-          td.dataset.label = label;
+          const row = document.createElement('div');
+          row.className = 'm-card-row';
 
-          // Wrap existing content in .td-val so ::before + value flex correctly
-          const wrap = document.createElement('span');
-          wrap.className = 'td-val';
-          while (td.firstChild) wrap.appendChild(td.firstChild);
-          td.appendChild(wrap);
-        });
+          const lbl = document.createElement('span');
+          lbl.className = 'm-card-label';
+          lbl.textContent = label;
+
+          const val = document.createElement('span');
+          val.className = 'm-card-val';
+          while (td.firstChild) val.appendChild(td.firstChild);
+
+          row.appendChild(lbl);
+          row.appendChild(val);
+          card.appendChild(row);
+        }
+
+        cards.push(card);
       });
+
+      if (!cards.length) return;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'm-cards';
+      cards.forEach(c => wrap.appendChild(c));
+
+      // Replace the .table-wrap (or the table itself) with the cards div
+      const target = table.closest('.table-wrap') || table;
+      target.replaceWith(wrap);
     });
   }
 
-  // Re-run whenever the page content changes (navigation, Firestore updates)
-  const observer = new MutationObserver(applyLabels);
+  const observer = new MutationObserver(convertTables);
   observer.observe(content, { childList: true, subtree: true });
 }
 
@@ -68,7 +115,6 @@ function setupSidebarToggle() {
     await logout();
   });
 
-  // Nav links
   document.querySelectorAll('[data-route]').forEach(el => {
     el.addEventListener('click', e => {
       e.preventDefault();
