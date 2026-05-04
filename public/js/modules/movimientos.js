@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { store } from '../store.js';
 import { can } from '../auth.js';
-import { meta, metaUpdate, escapeHtml, formatCurrency, formatDate, formatDateInput, parseDateInput, startOfWeek, startOfMonth, startOfYear, nowInTZ } from '../utils.js';
+import { meta, metaUpdate, escapeHtml, formatCurrency, formatDate, formatDateTime, formatDateInput, startOfWeek, startOfMonth, startOfYear, nowInTZ } from '../utils.js';
 import { toast, openModal, confirm, pageHeader, setLoading, spinner } from '../ui.js';
 import { icon } from '../icons.js';
 import { getCategorias, getCuentas, getClientes, getProveedores, cuentasOptions } from '../data.js';
@@ -22,7 +22,7 @@ export default {
 
     container.innerHTML = `
       ${pageHeader('Movimientos', canEdit
-        ? `<button class="btn btn-primary" id="btn-new">${icon('plus')} Nuevo movimiento</button>`
+        ? `<button class="btn btn-primary" id="btn-new">${icon('plus')} Nuevo</button>`
         : '')}
 
       <div class="movs-toolbar">
@@ -68,10 +68,20 @@ export default {
           b.classList.toggle('btn-primary', b.dataset.tipo === _tipo);
           b.classList.toggle('btn-secondary', b.dataset.tipo !== _tipo);
         });
+        // re-render with current data
+        const cached = container._movs;
+        if (cached) {
+          renderStats(container.querySelector('#stats-row'), cached);
+          renderList(container.querySelector('#movs-list'), cached, canEdit);
+        }
       })
     );
 
-    container.querySelector('#search-input').addEventListener('input', e => { _search = e.target.value.toLowerCase(); });
+    container.querySelector('#search-input').addEventListener('input', e => {
+      _search = e.target.value.toLowerCase();
+      const cached = container._movs;
+      if (cached) renderList(container.querySelector('#movs-list'), cached, canEdit);
+    });
 
     resubscribe(container, canEdit);
   },
@@ -81,26 +91,30 @@ export default {
 
 // ── Subscription ──────────────────────────────────────────────────────────────
 
-function periodStart() {
-  const now = nowInTZ();
-  return { week: startOfWeek, month: startOfMonth, year: startOfYear }[_period](now);
-}
-
 function resubscribe(container, canEdit) {
   _unsub?.();
-  const desde = Timestamp.fromDate(periodStart());
-  const hasta = Timestamp.fromDate(nowInTZ());
+  const desde = Timestamp.fromDate(
+    { week: startOfWeek, month: startOfMonth, year: startOfYear }[_period]()
+  );
+  // Only filter >= desde — avoids double-range Firestore composite index requirement.
+  // Upper bound (hasta = now) filtered client-side.
   const q = query(
     collection(db, 'movimientos'),
     where('fecha', '>=', desde),
-    where('fecha', '<=', hasta),
     orderBy('fecha', 'desc')
   );
   _unsub = onSnapshot(q, snap => {
-    const movs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const now = nowInTZ();
+    const movs = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(m => {
+        const f = m.fecha?.toDate ? m.fecha.toDate() : new Date(m.fecha);
+        return f <= now;
+      });
+    container._movs = movs;
     renderStats(container.querySelector('#stats-row'), movs);
     renderList(container.querySelector('#movs-list'), movs, canEdit);
-  }, err => console.error('movimientos:', err));
+  }, err => console.error('movimientos onSnapshot:', err));
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -112,17 +126,17 @@ function renderStats(el, movs) {
   el.innerHTML = `
     <div class="stat-card">
       <div class="stat-label">Ingresos</div>
-      <div class="stat-value stat-positive" style="font-size:20px">${formatCurrency(ing)}</div>
+      <div class="stat-value stat-positive">${formatCurrency(ing)}</div>
       <div class="stat-sub">${movs.filter(m=>m.tipo==='ingreso').length} movimientos</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Egresos</div>
-      <div class="stat-value stat-negative" style="font-size:20px">${formatCurrency(egr)}</div>
+      <div class="stat-value stat-negative">${formatCurrency(egr)}</div>
       <div class="stat-sub">${movs.filter(m=>m.tipo==='egreso').length} movimientos</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Resultado</div>
-      <div class="stat-value ${res >= 0 ? 'stat-positive' : 'stat-negative'}" style="font-size:20px">${formatCurrency(res)}</div>
+      <div class="stat-value ${res >= 0 ? 'stat-positive' : 'stat-negative'}">${formatCurrency(res)}</div>
       <div class="stat-sub">${movs.length} total</div>
     </div>
   `;
@@ -143,49 +157,45 @@ function renderList(el, all, canEdit) {
     return;
   }
 
-  el.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>Fecha</th><th>Descripción</th><th>Categoría</th>
-          <th>Cuenta</th><th>Asociado a</th>
-          <th style="text-align:right">Monto</th><th></th>
-        </tr></thead>
-        <tbody>
-          ${list.map(m => `
-            <tr>
-              <td class="text-sm text-muted" style="white-space:nowrap">${formatDate(m.fecha)}</td>
-              <td>
-                <div style="font-weight:500">${escapeHtml(m.descripcion || '—')}</div>
-                ${m.notas ? `<div class="text-xs text-muted">${escapeHtml(m.notas)}</div>` : ''}
-              </td>
-              <td>${m.categoriaNombre
-                ? `<span class="badge ${m.tipo==='ingreso'?'badge-success':'badge-error'}">${escapeHtml(m.categoriaNombre)}</span>`
-                : '<span class="text-muted text-xs">—</span>'}</td>
-              <td class="text-sm">${escapeHtml(m.cuentaNombre || '—')}</td>
-              <td class="text-sm text-muted">
-                ${m.clienteNombre  ? `👤 ${escapeHtml(m.clienteNombre)}`  : ''}
-                ${m.proveedorNombre ? `🏭 ${escapeHtml(m.proveedorNombre)}` : ''}
-                ${!m.clienteNombre && !m.proveedorNombre ? '—' : ''}
-              </td>
-              <td style="text-align:right;font-weight:700;white-space:nowrap;color:${m.tipo==='ingreso'?'var(--c-success)':'var(--c-error)'}">
-                ${m.tipo==='ingreso'?'+':'-'}${formatCurrency(m.monto)}
-              </td>
-              <td class="actions">${canEdit ? `
-                <div class="td-actions">
-                  <button class="btn-icon" data-action="edit" data-id="${m.id}">${icon('pencil')}</button>
-                  <button class="btn-icon" data-action="del" data-id="${m.id}">${icon('trash')}</button>
-                </div>` : ''}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
+  el.innerHTML = list.map(m => {
+    const esIngreso = m.tipo === 'ingreso';
+    const asociado = m.clienteNombre
+      ? `👤 ${escapeHtml(m.clienteNombre)}`
+      : m.proveedorNombre
+        ? `🏭 ${escapeHtml(m.proveedorNombre)}`
+        : '';
+    return `
+      <div class="mov-item" data-id="${m.id}">
+        <div class="mov-accent ${esIngreso ? 'mov-ing' : 'mov-egr'}"></div>
+        <div class="mov-body">
+          <div class="mov-top">
+            <span class="mov-desc">${escapeHtml(m.descripcion || '—')}</span>
+            <span class="mov-monto ${esIngreso ? 'mov-ing-text' : 'mov-egr-text'}">
+              ${esIngreso ? '+' : '-'}${formatCurrency(m.monto)}
+            </span>
+          </div>
+          <div class="mov-meta">
+            <span class="mov-date">${formatDateTime(m.fecha)}</span>
+            ${m.categoriaNombre ? `<span class="badge ${esIngreso?'badge-success':'badge-error'}">${escapeHtml(m.categoriaNombre)}</span>` : ''}
+            ${m.cuentaNombre ? `<span class="text-xs text-muted">${escapeHtml(m.cuentaNombre)}</span>` : ''}
+            ${asociado ? `<span class="text-xs text-muted">${asociado}</span>` : ''}
+          </div>
+          ${m.notas ? `<div class="mov-notes">${escapeHtml(m.notas)}</div>` : ''}
+        </div>
+        ${canEdit ? `
+        <div class="mov-actions">
+          <button class="btn-icon" data-action="edit" data-id="${m.id}">${icon('pencil')}</button>
+          <button class="btn-icon btn-icon-danger" data-action="del" data-id="${m.id}">${icon('trash')}</button>
+        </div>` : ''}
+      </div>
+    `;
+  }).join('');
 
   const movMap = Object.fromEntries(all.map(m => [m.id, m]));
-  el.querySelectorAll('[data-action="edit"]').forEach(b => b.addEventListener('click', () => openMovModal(movMap[b.dataset.id])));
-  el.querySelectorAll('[data-action="del"]').forEach(b => b.addEventListener('click', () => deleteMov(movMap[b.dataset.id])));
+  el.querySelectorAll('[data-action="edit"]').forEach(b =>
+    b.addEventListener('click', () => openMovModal(movMap[b.dataset.id])));
+  el.querySelectorAll('[data-action="del"]').forEach(b =>
+    b.addEventListener('click', () => deleteMov(movMap[b.dataset.id])));
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
@@ -304,29 +314,32 @@ async function openMovModal(mov = null) {
   }));
 
   entTipo.addEventListener('change', () => fillEntidades(entTipo.value));
-
   fillCats(defaultTipo);
   fillEntidades(mov?.clienteId ? 'cliente' : mov?.proveedorId ? 'proveedor' : '');
 
   modal.querySelector('#m-cancel').addEventListener('click', close);
   modal.querySelector('#m-save').addEventListener('click', async () => {
-    const tipo  = tipoInput.value;
-    const monto = parseFloat(modal.querySelector('#mov-monto').value);
-    const fecha = modal.querySelector('#mov-fecha').value;
+    const tipo     = tipoInput.value;
+    const monto    = parseFloat(modal.querySelector('#mov-monto').value);
+    const fechaStr = modal.querySelector('#mov-fecha').value;
     const cuentaId = modal.querySelector('#mov-cuenta').value;
 
     if (!isEdit && (!monto || monto <= 0)) { toast('Ingresá un monto válido.', 'error'); return; }
-    if (!fecha) { toast('La fecha es requerida.', 'error'); return; }
+    if (!fechaStr) { toast('La fecha es requerida.', 'error'); return; }
     if (!isEdit && !cuentaId) { toast('Seleccioná una cuenta.', 'error'); return; }
 
-    const catId  = catSel.value;
-    const allCats = [...catsIng, ...catsGasto];
-    const catObj  = allCats.find(c => c.id === catId);
+    // fecha: today → exact current moment; other day → noon BA
+    const todayBA = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+    const fechaDate = fechaStr === todayBA ? new Date() : new Date(fechaStr + 'T12:00:00-03:00');
+
+    const catId      = catSel.value;
+    const allCats    = [...catsIng, ...catsGasto];
+    const catObj     = allCats.find(c => c.id === catId);
     const cuentaObj  = cuentas.find(c => c.id === cuentaId);
     const entTipoVal = entTipo.value;
     const entIdVal   = entId.value;
-    const clienteObj  = entTipoVal === 'cliente'   ? clientes.find(c => c.id === entIdVal)   : null;
-    const provObj     = entTipoVal === 'proveedor'  ? proveedores.find(p => p.id === entIdVal) : null;
+    const clienteObj = entTipoVal === 'cliente'   ? clientes.find(c => c.id === entIdVal)   : null;
+    const provObj    = entTipoVal === 'proveedor'  ? proveedores.find(p => p.id === entIdVal) : null;
 
     const btn = modal.querySelector('#m-save');
     setLoading(btn, true);
@@ -336,7 +349,7 @@ async function openMovModal(mov = null) {
       if (isEdit) {
         await updateDoc(doc(db, 'movimientos', mov.id), {
           descripcion:     modal.querySelector('#mov-desc').value.trim(),
-          fecha:           Timestamp.fromDate(parseDateInput(fecha)),
+          fecha:           Timestamp.fromDate(fechaDate),
           categoriaId:     catId || null,
           categoriaNombre: catObj?.nombre || null,
           notas:           modal.querySelector('#mov-notas').value.trim(),
@@ -347,7 +360,7 @@ async function openMovModal(mov = null) {
         await addDoc(collection(db, 'movimientos'), {
           tipo,
           monto,
-          fecha:           Timestamp.fromDate(parseDateInput(fecha)),
+          fecha:           Timestamp.fromDate(fechaDate),
           descripcion:     modal.querySelector('#mov-desc').value.trim(),
           categoriaId:     catId || null,
           categoriaNombre: catObj?.nombre || null,
@@ -382,6 +395,6 @@ async function deleteMov(mov) {
   if (!ok) return;
   try {
     await deleteDoc(doc(db, 'movimientos', mov.id));
-    toast('Movimiento eliminado. Saldos actualizados.', 'success');
+    toast('Movimiento eliminado.', 'success');
   } catch { toast('Error al eliminar.', 'error'); }
 }
