@@ -1,21 +1,21 @@
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
-  --c-primary:       #C4762A;
-  --c-primary-dark:  #A85E1E;
-  --c-primary-light: #F0C080;
-  --c-accent:        #E8A84A;
-  --c-sidebar:       #1A100A;
-  --c-sidebar-hover: #2C1A10;
-  --c-sidebar-active:#C4762A;
-  --c-sidebar-text:  #D4C0A8;
-  --c-sidebar-label: #7A6050;
-  --c-bg:            #F6F2EE;
+  --c-primary:       #6366F1;
+  --c-primary-dark:  #4F46E5;
+  --c-primary-light: #C7D2FE;
+  --c-accent:        #8B5CF6;
+  --c-sidebar:       #0F172A;
+  --c-sidebar-hover: #1E293B;
+  --c-sidebar-active:#6366F1;
+  --c-sidebar-text:  #CBD5E1;
+  --c-sidebar-label: #64748B;
+  --c-bg:            #F8FAFC;
   --c-surface:       #FFFFFF;
-  --c-surface-2:     #F0EBE4;
-  --c-border:        #E4D8CC;
-  --c-text:          #1C1208;
-  --c-text-2:        #6B5A4A;
-  --c-text-3:        #A09080;
+  --c-surface-2:     #F1F5F9;
+  --c-border:        #E2E8F0;
+  --c-text:          #0F172A;
+  --c-text-2:        #475569;
+  --c-text-3:        #94A3B8;
   --c-success:       #2E7A4E;
   --c-success-bg:    #EBF7F0;
   --c-error:         #C0392B;
@@ -32,7 +32,7 @@
   --radius-xl:       16px;
   --shadow:          0 1px 4px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
   --shadow-lg:       0 4px 16px rgba(0,0,0,.12), 0 8px 32px rgba(0,0,0,.08);
-  --shadow-fab:      0 6px 24px rgba(196,118,42,.40), 0 2px 8px rgba(0,0,0,.15);
+  --shadow-fab:      0 6px 24px rgba(99,102,241,.45), 0 2px 8px rgba(0,0,0,.15);
   --transition:      150ms ease;
   --safe-bottom:     env(safe-area-inset-bottom, 0px);
   --safe-top:        env(safe-area-inset-top, 0px);
@@ -247,7 +247,7 @@ ul { list-style: none; }
 }
 .bn-item svg { width: 22px; height: 22px; }
 .bn-item.active { color: var(--c-primary); font-weight: 600; }
-.bn-item.active > span:first-child { background: rgba(196,118,42,.12); }
+.bn-item.active > span:first-child { background: rgba(99,102,241,.12); }
 .bn-item:active > span:first-child { transform: scale(.9); }
 
 /* ─── Auth Screen ────────────────────────────────────────────────────────── */
@@ -258,7 +258,7 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1A100A 0%, #2C1A10 50%, #3D2418 100%);
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #1E1B4B 100%);
   padding: 24px;
   padding-top: calc(24px + var(--safe-top));
   padding-bottom: calc(24px + var(--safe-bottom));
@@ -470,12 +470,12 @@ ul { list-style: none; }
 .input:focus, .select-input:focus, .textarea:focus {
   outline: none;
   border-color: var(--c-primary);
-  box-shadow: 0 0 0 3px rgba(196,118,42,.12);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
 }
 .input.error, .select-input.error { border-color: var(--c-error); }
 .textarea { resize: vertical; min-height: 80px; }
 .select-input {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B5A4A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 32px;
@@ -672,7 +672,7 @@ td.actions { width: 1px; white-space: nowrap; }
   transition: border-color var(--transition);
   min-height: 42px;
 }
-.search-bar:focus-within { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(196,118,42,.10); }
+.search-bar:focus-within { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(99,102,241,.10); }
 .search-bar svg { color: var(--c-text-3); width: 15px; flex-shrink: 0; }
 .search-bar input {
   border: none;

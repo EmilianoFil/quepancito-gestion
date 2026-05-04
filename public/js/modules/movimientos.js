@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { store } from '../store.js';
 import { can } from '../auth.js';
-import { meta, metaUpdate, escapeHtml, formatCurrency, formatDate, formatDateInput, startOfWeek, startOfMonth, startOfYear, nowInTZ } from '../utils.js';
+import { meta, metaUpdate, escapeHtml, formatCurrency, formatDate, formatDateInput, parseDateInput, startOfWeek, startOfMonth, startOfYear, nowInTZ } from '../utils.js';
 import { toast, openModal, confirm, pageHeader, setLoading, spinner } from '../ui.js';
 import { icon } from '../icons.js';
 import { getCategorias, getCuentas, getClientes, getProveedores, cuentasOptions } from '../data.js';
@@ -336,7 +336,7 @@ async function openMovModal(mov = null) {
       if (isEdit) {
         await updateDoc(doc(db, 'movimientos', mov.id), {
           descripcion:     modal.querySelector('#mov-desc').value.trim(),
-          fecha:           Timestamp.fromDate(new Date(fecha + 'T12:00:00')),
+          fecha:           Timestamp.fromDate(parseDateInput(fecha)),
           categoriaId:     catId || null,
           categoriaNombre: catObj?.nombre || null,
           notas:           modal.querySelector('#mov-notas').value.trim(),
@@ -347,7 +347,7 @@ async function openMovModal(mov = null) {
         await addDoc(collection(db, 'movimientos'), {
           tipo,
           monto,
-          fecha:           Timestamp.fromDate(new Date(fecha + 'T12:00:00')),
+          fecha:           Timestamp.fromDate(parseDateInput(fecha)),
           descripcion:     modal.querySelector('#mov-desc').value.trim(),
           categoriaId:     catId || null,
           categoriaNombre: catObj?.nombre || null,

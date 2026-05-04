@@ -80,19 +80,32 @@ export function slugify(str) {
   return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
 }
 
+// Parse a yyyy-mm-dd input string as noon BA time (avoids day-boundary edge-cases)
+export function parseDateInput(str) {
+  if (!str) return null;
+  return new Date(str + 'T12:00:00-03:00');
+}
+
+// Return yyyy-mm-dd for the given date in BA timezone
+function tzDate(date) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(date);
+}
+
 export function startOfWeek(date = new Date()) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // Monday = start
+  const dayName = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(date);
+  const dayNum = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[dayName];
+  const diff = dayNum === 0 ? -6 : 1 - dayNum; // Monday = start
+  const d = new Date(tzDate(date) + 'T00:00:00-03:00');
   d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
   return d;
 }
 
 export function startOfMonth(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+  const [y, m] = tzDate(date).split('-');
+  return new Date(`${y}-${m}-01T00:00:00-03:00`);
 }
 
 export function startOfYear(date = new Date()) {
-  return new Date(date.getFullYear(), 0, 1);
+  const y = tzDate(date).split('-')[0];
+  return new Date(`${y}-01-01T00:00:00-03:00`);
 }
