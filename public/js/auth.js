@@ -1,8 +1,12 @@
 import { auth, db } from './firebase-config.js';
 import {
   onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup,
-  GoogleAuthProvider, signOut, sendPasswordResetEmail
+  GoogleAuthProvider, signOut, sendPasswordResetEmail,
+  setPersistence, browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+// Forzar localStorage (evita el bug de sessionStorage en iOS Safari / storage partitioning)
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { store } from './store.js';
 import { toast } from './ui.js';
