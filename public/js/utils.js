@@ -80,10 +80,13 @@ export function slugify(str) {
   return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
 }
 
-// Parse a yyyy-mm-dd input string as noon BA time (avoids day-boundary edge-cases)
+// Build a Date for saving a movement:
+// - If the selected date is today in BA → use the actual current moment
+// - Otherwise → use noon BA time of that date (exact time unknown for past entries)
 export function parseDateInput(str) {
   if (!str) return null;
-  return new Date(str + 'T12:00:00-03:00');
+  const todayBA = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+  return str === todayBA ? new Date() : new Date(str + 'T12:00:00-03:00');
 }
 
 // Return yyyy-mm-dd for the given date in BA timezone
