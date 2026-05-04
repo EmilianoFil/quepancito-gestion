@@ -755,17 +755,20 @@ td.actions { width: 1px; white-space: nowrap; }
 }
 .movs-filters {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-items: center;
+  width: 100%;
 }
 .movs-filters .search-bar {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 .tipo-btns {
   display: flex;
-  gap: 4px;
-  flex-shrink: 0;
+  gap: 6px;
+  width: 100%;
+}
+.tipo-btns .btn {
+  flex: 1;
 }
 @media (min-width: 768px) {
   .movs-toolbar {
@@ -773,7 +776,14 @@ td.actions { width: 1px; white-space: nowrap; }
     align-items: center;
     justify-content: space-between;
   }
-  .movs-filters { flex-shrink: 0; }
+  .movs-filters {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+  }
+  .movs-filters .search-bar { width: 200px; }
+  .tipo-btns { width: auto; }
+  .tipo-btns .btn { flex: none; }
 }
 
 /* ─── Permissions grid ───────────────────────────────────────────────────── */
