@@ -906,21 +906,24 @@ td.actions { width: 1px; white-space: nowrap; }
     word-break: break-word;
   }
 
-  /* Actions row — display flex directly on td so buttons always show */
+  /* Actions row — fully explicit, overrides everything */
   tbody td.actions {
-    display: flex !important;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-    background: var(--c-bg);
-    padding: 10px 14px;
-    border-top: 1px solid var(--c-border);
-    min-height: 56px;
+    display: block !important;
+    background: var(--c-bg) !important;
+    padding: 8px 14px !important;
+    border-top: 1px solid var(--c-border) !important;
+    min-height: 56px !important;
   }
+  /* Kill any data-label label that might have been set by accident */
+  tbody td.actions::before { display: none !important; content: none !important; }
   tbody td.actions .td-actions {
     display: flex !important;
-    align-items: center;
-    gap: 10px;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-height: 40px !important;
   }
   .btn-icon { width: 44px; height: 44px; }
 

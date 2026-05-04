@@ -27,8 +27,10 @@ function setupMobileTableLabels() {
 
       table.querySelectorAll('tbody tr').forEach(tr => {
         [...tr.querySelectorAll('td')].forEach((td, i) => {
-          // Skip: first column (title), actions, already processed
-          if (i === 0 || td.classList.contains('actions')) return;
+          // Skip: first column (title), actions (by class OR by content), already processed
+          if (i === 0) return;
+          if (td.classList.contains('actions')) return;
+          if (td.querySelector('.td-actions, [data-action]')) return; // extra guard
           if (td.querySelector('.td-val')) return; // already done
 
           const label = headers[i];
