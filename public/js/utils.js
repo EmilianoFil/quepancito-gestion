@@ -22,7 +22,9 @@ export function formatDateInput(value) {
 }
 
 export function nowInTZ() {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: TZ }));
+  // Return the actual current moment — Firestore Timestamps are UTC internally.
+  // The old toLocaleString trick created a "shifted" Date that broke range queries.
+  return new Date();
 }
 
 export function formatCurrency(amount) {

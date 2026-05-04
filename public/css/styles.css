@@ -746,6 +746,36 @@ td.actions { width: 1px; white-space: nowrap; }
 .tab.active { color: var(--c-primary); border-bottom-color: var(--c-primary); font-weight: 600; }
 .tab:hover:not(.active) { color: var(--c-text); }
 
+/* ─── Movimientos toolbar ────────────────────────────────────────────────── */
+.movs-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.movs-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.movs-filters .search-bar {
+  flex: 1;
+  min-width: 0;
+}
+.tipo-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .movs-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .movs-filters { flex-shrink: 0; }
+}
+
 /* ─── Permissions grid ───────────────────────────────────────────────────── */
 .perms-table { width: 100%; border-collapse: collapse; }
 .perms-table th, .perms-table td { padding: 8px 10px; font-size: 13px; text-align: left; border-bottom: 1px solid var(--c-border); }

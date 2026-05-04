@@ -25,19 +25,19 @@ export default {
         ? `<button class="btn btn-primary" id="btn-new">${icon('plus')} Nuevo movimiento</button>`
         : '')}
 
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-        <div class="tabs" style="margin-bottom:0" id="period-tabs">
+      <div class="movs-toolbar">
+        <div class="tab-bar" id="period-tabs">
           ${['week','month','year'].map(p => `
-            <div class="tab ${_period===p?'active':''}" data-period="${p}">
+            <button class="tab-btn ${_period===p?'active':''}" data-period="${p}">
               ${{week:'Semana',month:'Mes',year:'Año'}[p]}
-            </div>`).join('')}
+            </button>`).join('')}
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <div class="search-bar" style="width:200px">
+        <div class="movs-filters">
+          <div class="search-bar">
             ${icon('search')}
             <input type="text" id="search-input" placeholder="Buscar..." value="${_search}" />
           </div>
-          <div style="display:flex;gap:4px">
+          <div class="tipo-btns">
             ${['all','ingreso','egreso'].map(t => `
               <button class="btn btn-sm ${_tipo===t?'btn-primary':'btn-secondary'}" data-tipo="${t}">
                 ${{all:'Todos',ingreso:'Ingresos',egreso:'Egresos'}[t]}
