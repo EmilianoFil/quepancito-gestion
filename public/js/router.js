@@ -17,6 +17,22 @@ const ROUTES = {
   '/config':       () => import('./modules/config.js'),
 };
 
+const ROUTE_TITLES = {
+  '/dashboard':   'Inicio',
+  '/clientes':    'Clientes',
+  '/proveedores': 'Proveedores',
+  '/empleados':   'Empleados',
+  '/productos':   'Productos',
+  '/insumos':     'Insumos',
+  '/movimientos': 'Movimientos',
+  '/cuentas':     'Cuentas',
+  '/stock':       'Stock',
+  '/reportes':    'Reportes',
+  '/categorias':  'Categorías',
+  '/usuarios':    'Usuarios',
+  '/config':      'Configuración',
+};
+
 // Sections that require a specific permission to access
 const ROUTE_PERMS = {
   '/clientes': 'clientes', '/proveedores': 'proveedores',
@@ -67,6 +83,7 @@ class Router {
     }
 
     this._updateActive(path);
+    this._updateTitle(path);
     this._closeMobileSidebar();
   }
 
@@ -74,6 +91,11 @@ class Router {
     document.querySelectorAll('[data-route]').forEach(el =>
       el.classList.toggle('active', el.dataset.route === path)
     );
+  }
+
+  _updateTitle(path) {
+    const el = document.getElementById('topbar-title');
+    if (el) el.textContent = ROUTE_TITLES[path] ?? '';
   }
 
   _closeMobileSidebar() {
