@@ -849,10 +849,13 @@ td.actions { width: 1px; white-space: nowrap; }
     background: var(--c-surface);
     border: 1px solid var(--c-border);
     border-radius: var(--radius-xl);
-    overflow: hidden;
+    /* No overflow:hidden — it clips action buttons; use border-radius on first/last cells instead */
     box-shadow: 0 1px 6px rgba(0,0,0,.07);
   }
   tbody tr:hover { background: var(--c-surface); }
+  /* Round the corners of first and last cells manually */
+  tbody td:first-child { border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+  tbody td:last-child  { border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
 
   /* Base cell */
   tbody td {
@@ -903,15 +906,23 @@ td.actions { width: 1px; white-space: nowrap; }
     word-break: break-word;
   }
 
-  /* Actions row */
+  /* Actions row — display flex directly on td so buttons always show */
   tbody td.actions {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
     background: var(--c-bg);
-    padding: 10px 12px;
+    padding: 10px 14px;
     border-top: 1px solid var(--c-border);
-    display: block;
+    min-height: 56px;
   }
-  .td-actions { justify-content: flex-end; gap: 10px; }
-  .btn-icon { width: 40px; height: 40px; }
+  tbody td.actions .td-actions {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-icon { width: 44px; height: 44px; }
 
   /* ── Stats grid: 2 col ── */
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
