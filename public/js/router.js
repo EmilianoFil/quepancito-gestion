@@ -1,20 +1,21 @@
 import { spinner } from './ui.js';
 import { store } from './store.js';
 
+const V = '2';
 const ROUTES = {
-  '/dashboard':    () => import('./modules/dashboard.js'),
-  '/clientes':     () => import('./modules/clientes.js'),
-  '/proveedores':  () => import('./modules/proveedores.js'),
-  '/empleados':    () => import('./modules/empleados.js'),
-  '/productos':    () => import('./modules/productos.js'),
-  '/insumos':      () => import('./modules/insumos.js'),
-  '/movimientos':  () => import('./modules/movimientos.js'),
-  '/cuentas':      () => import('./modules/cuentas.js'),
-  '/stock':        () => import('./modules/stock.js'),
-  '/reportes':     () => import('./modules/reportes.js'),
-  '/categorias':   () => import('./modules/categorias.js'),
-  '/usuarios':     () => import('./modules/usuarios.js'),
-  '/config':       () => import('./modules/config.js'),
+  '/dashboard':    () => import(`./modules/dashboard.js?v=${V}`),
+  '/clientes':     () => import(`./modules/clientes.js?v=${V}`),
+  '/proveedores':  () => import(`./modules/proveedores.js?v=${V}`),
+  '/empleados':    () => import(`./modules/empleados.js?v=${V}`),
+  '/productos':    () => import(`./modules/productos.js?v=${V}`),
+  '/insumos':      () => import(`./modules/insumos.js?v=${V}`),
+  '/movimientos':  () => import(`./modules/movimientos.js?v=${V}`),
+  '/cuentas':      () => import(`./modules/cuentas.js?v=${V}`),
+  '/stock':        () => import(`./modules/stock.js?v=${V}`),
+  '/reportes':     () => import(`./modules/reportes.js?v=${V}`),
+  '/categorias':   () => import(`./modules/categorias.js?v=${V}`),
+  '/usuarios':     () => import(`./modules/usuarios.js?v=${V}`),
+  '/config':       () => import(`./modules/config.js?v=${V}`),
 };
 
 const ROUTE_TITLES = {
