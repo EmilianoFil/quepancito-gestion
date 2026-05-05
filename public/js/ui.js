@@ -63,6 +63,8 @@ export function closeAllModals() {
 
 export function confirm({ title, message, confirmLabel = 'Confirmar', danger = false }) {
   return new Promise(resolve => {
+    let answered = false;
+    const answer = (val) => { if (!answered) { answered = true; resolve(val); } };
     const { modal, close } = openModal({
       title,
       body: `<p class="confirm-message">${message}</p>`,
@@ -70,10 +72,10 @@ export function confirm({ title, message, confirmLabel = 'Confirmar', danger = f
         <button class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
         <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="confirm-ok">${confirmLabel}</button>
       `,
-      onClose: () => resolve(false),
+      onClose: () => answer(false),
     });
-    modal.querySelector('#confirm-cancel').addEventListener('click', () => { close(); resolve(false); });
-    modal.querySelector('#confirm-ok').addEventListener('click', () => { close(); resolve(true); });
+    modal.querySelector('#confirm-cancel').addEventListener('click', () => { answer(false); close(); });
+    modal.querySelector('#confirm-ok').addEventListener('click', () => { answer(true); close(); });
   });
 }
 

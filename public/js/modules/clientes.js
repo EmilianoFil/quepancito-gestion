@@ -5,18 +5,19 @@ import { can } from '../auth.js';
 import { meta, metaUpdate, escapeHtml, formatCurrency, formatDate } from '../utils.js';
 import { toast, openModal, confirm, pageHeader, setLoading, spinner } from '../ui.js';
 import { icon } from '../icons.js';
-import { getCategorias, categoriasOptions } from '../data.js';
+import { getCategorias, categoriasOptions, getListasPrecios } from '../data.js';
 
 let _unsub = null;
 let _search = '';
 let _catFilter = '';
 let _cats = [];
+let _listas = [];
 
 export default {
   async init(container) {
     container.innerHTML = spinner;
     const canEdit = can('clientes', 'write');
-    _cats = await getCategorias('cliente');
+    [_cats, _listas] = await Promise.all([getCategorias('cliente'), getListasPrecios()]);
 
     container.innerHTML = `
       ${pageHeader('Clientes', canEdit ? `<button class="btn btn-primary" id="btn-new">${icon('plus')} Nuevo cliente</button>` : '')}
@@ -63,7 +64,7 @@ function renderList(container, all, canEdit) {
   container.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Nombre</th><th>Categoría</th><th>Contacto</th><th>Cta. Cte.</th><th></th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Categoría</th><th>Lista de precios</th><th>Contacto</th><th>Cta. Cte.</th><th></th></tr></thead>
         <tbody>
           ${list.map(c => `
             <tr style="cursor:pointer" data-id="${c.id}">
@@ -72,6 +73,7 @@ function renderList(container, all, canEdit) {
                 ${c.contacto?.empresa ? `<div class="text-xs text-muted">${escapeHtml(c.contacto.empresa)}</div>` : ''}
               </td>
               <td>${c.categoriaNombre ? `<span class="badge badge-info">${escapeHtml(c.categoriaNombre)}</span>` : '<span class="text-muted">-</span>'}</td>
+              <td>${c.listaPrecioNombre ? `<span class="badge badge-warning">${escapeHtml(c.listaPrecioNombre)}</span>` : '<span class="text-muted">-</span>'}</td>
               <td>
                 ${c.contacto?.telefono ? `<div class="text-sm">${icon('user')} ${escapeHtml(c.contacto.telefono)}</div>` : ''}
                 ${c.contacto?.email ? `<div class="text-sm text-muted">${escapeHtml(c.contacto.email)}</div>` : ''}
@@ -155,12 +157,13 @@ async function openDetail(cliente) {
     `,
     footer: `<button class="btn btn-secondary" id="det-close">Cerrar</button>`,
   });
-  document.querySelector('#det-close')?.addEventListener('click', close);
+  modal.querySelector('#det-close').addEventListener('click', close);
 }
 
 async function openClienteModal(cliente = null) {
   const isEdit = !!cliente;
-  const cats = _cats.length ? _cats : await getCategorias('cliente');
+  const cats   = _cats.length   ? _cats   : await getCategorias('cliente');
+  const listas = _listas.length ? _listas : await getListasPrecios();
 
   const { modal, close } = openModal({
     title: isEdit ? 'Editar cliente' : 'Nuevo cliente',
@@ -174,6 +177,13 @@ async function openClienteModal(cliente = null) {
         <div class="form-group">
           <label class="form-label">Categoría</label>
           <select class="select-input" id="cl-cat">${categoriasOptions(cats, cliente?.categoriaId)}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lista de precios</label>
+          <select class="select-input" id="cl-lista">
+            <option value="">Sin lista</option>
+            ${listas.map(l => `<option value="${l.id}" ${l.id === cliente?.listaPrecioId ? 'selected' : ''}>${escapeHtml(l.nombre)}</option>`).join('')}
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">CUIT / DNI</label>
@@ -213,16 +223,20 @@ async function openClienteModal(cliente = null) {
     const nombre = modal.querySelector('#cl-nombre').value.trim();
     if (!nombre) { toast('El nombre es requerido.', 'error'); return; }
 
-    const catId = modal.querySelector('#cl-cat').value;
-    const catObj = cats.find(c => c.id === catId);
+    const catId    = modal.querySelector('#cl-cat').value;
+    const catObj   = cats.find(c => c.id === catId);
+    const listaId  = modal.querySelector('#cl-lista').value;
+    const listaObj = listas.find(l => l.id === listaId);
     const btn = modal.querySelector('#cl-save');
     setLoading(btn, true);
 
     const data = {
       nombre,
       cuit: modal.querySelector('#cl-cuit').value.trim(),
-      categoriaId: catId || null,
-      categoriaNombre: catObj?.nombre || null,
+      categoriaId:       catId   || null,
+      categoriaNombre:   catObj?.nombre  || null,
+      listaPrecioId:     listaId  || null,
+      listaPrecioNombre: listaObj?.nombre || null,
       contacto: {
         nombre:    modal.querySelector('#cl-cnt-nombre').value.trim(),
         telefono:  modal.querySelector('#cl-cnt-tel').value.trim(),

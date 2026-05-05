@@ -34,3 +34,8 @@ export function cuentasOptions(cuentas, selected = '') {
   return `<option value="">Seleccionar cuenta</option>` +
     cuentas.map(c => `<option value="${c.id}" ${c.id === selected ? 'selected' : ''}>${c.nombre}</option>`).join('');
 }
+
+export async function getListasPrecios() {
+  const snap = await getDocs(query(collection(db, 'listasPrecios'), orderBy('nombre')));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}

@@ -116,5 +116,10 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
+
+    match /listasPrecios/{id} {
+      allow read: if isAuth();
+      allow write: if isAuth() && canWrite('config');
+    }
   }
 }

@@ -1,7 +1,7 @@
 import { db } from '../firebase-config.js';
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
-  onSnapshot, query, orderBy, getDocs
+  onSnapshot, query, orderBy, getDocs, where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { store } from '../store.js';
 import { can } from '../auth.js';
@@ -46,52 +46,66 @@ export default {
 
 function renderList(container, all, canEdit) {
   const list = _search ? all.filter(p => p.nombre?.toLowerCase().includes(_search)) : all;
+  const finalProds = list.filter(p => !p.tipo || p.tipo === 'producto');
+  const preps = list.filter(p => p.tipo === 'preparacion');
 
   if (!list.length) {
     container.innerHTML = `<div class="empty-state">${icon('package', 36)}<p>${all.length ? 'Sin resultados.' : 'No hay productos cargados.'}</p></div>`;
     return;
   }
 
-  container.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>Nombre</th>
-          <th style="text-align:right">Rendimiento batch</th>
-          <th style="text-align:right">Costo / kg</th>
-          <th style="text-align:right">Precio venta</th>
-          <th style="text-align:right">Margen</th>
-          <th></th>
-        </tr></thead>
-        <tbody>
-          ${list.map(p => {
-            const margen = p.precioVenta && p.costoPorKg
-              ? ((p.precioVenta - p.costoPorKg) / p.precioVenta * 100)
-              : null;
-            return `<tr>
-              <td>
-                <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
-                <div class="text-xs text-muted">${(p.receta?.length || 0)} ingredientes</div>
-              </td>
-              <td style="text-align:right" class="text-sm">${formatNumber(p.rendimientoKg ?? 0, 1)} kg</td>
-              <td style="text-align:right;font-weight:700">${p.costoPorKg ? formatCurrency(p.costoPorKg) : '—'}</td>
-              <td style="text-align:right">${p.precioVenta ? formatCurrency(p.precioVenta) : '—'}</td>
-              <td style="text-align:right">
-                ${margen !== null
-                  ? `<span class="badge ${margen >= 20 ? 'badge-success' : margen >= 0 ? 'badge-warning' : 'badge-error'}">${formatNumber(margen, 1)}%</span>`
-                  : '—'}
-              </td>
-              <td class="actions"><div class="td-actions">
-                <button class="btn-icon" data-action="view" data-id="${p.id}" title="Ver receta">${icon('eye')}</button>
-                ${canEdit ? `<button class="btn-icon" data-action="edit" data-id="${p.id}">${icon('pencil')}</button>` : ''}
-                ${canEdit ? `<button class="btn-icon" data-action="del" data-id="${p.id}" data-name="${escapeHtml(p.nombre)}">${icon('trash')}</button>` : ''}
-              </div></td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
+  const thead = `<thead><tr>
+    <th>Nombre</th>
+    <th style="text-align:right">Rendimiento batch</th>
+    <th style="text-align:right">Costo / kg</th>
+    <th style="text-align:right">Precio venta</th>
+    <th style="text-align:right">Margen</th>
+    <th></th>
+  </tr></thead>`;
+
+  const tableRows = (items) => items.map(p => {
+    const margen = p.precioVenta && p.costoPorKg
+      ? ((p.precioVenta - p.costoPorKg) / p.precioVenta * 100)
+      : null;
+    return `<tr>
+      <td>
+        <div style="font-weight:600">${escapeHtml(p.nombre)}</div>
+        <div class="text-xs text-muted">${(p.receta?.length || 0)} ingredientes</div>
+      </td>
+      <td style="text-align:right" class="text-sm">${formatNumber(p.rendimientoKg ?? 0, 1)} kg</td>
+      <td style="text-align:right;font-weight:700">${p.costoPorKg ? formatCurrency(p.costoPorKg) : '—'}</td>
+      <td style="text-align:right">${p.precioVenta ? formatCurrency(p.precioVenta) : '—'}</td>
+      <td style="text-align:right">
+        ${margen !== null
+          ? `<span class="badge ${margen >= 20 ? 'badge-success' : margen >= 0 ? 'badge-warning' : 'badge-error'}">${formatNumber(margen, 1)}%</span>`
+          : '—'}
+      </td>
+      <td class="actions"><div class="td-actions">
+        <button class="btn-icon" data-action="view" data-id="${p.id}" title="Ver receta">${icon('eye')}</button>
+        ${canEdit ? `<button class="btn-icon" data-action="edit" data-id="${p.id}">${icon('pencil')}</button>` : ''}
+        ${canEdit ? `<button class="btn-icon" data-action="del" data-id="${p.id}" data-name="${escapeHtml(p.nombre)}">${icon('trash')}</button>` : ''}
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  if (preps.length > 0) {
+    container.innerHTML = `
+      <p style="font-weight:600;font-size:13px;color:var(--c-text-2);margin-bottom:6px">Productos finales</p>
+      <div class="table-wrap" style="margin-bottom:20px">
+        <table>${thead}<tbody>${finalProds.length ? tableRows(finalProds) : '<tr><td colspan="6" class="text-muted text-sm" style="text-align:center;padding:20px">Sin productos finales.</td></tr>'}</tbody></table>
+      </div>
+      <p style="font-weight:600;font-size:13px;color:var(--c-text-2);margin-bottom:6px">Preparaciones</p>
+      <div class="table-wrap">
+        <table>${thead}<tbody>${tableRows(preps)}</tbody></table>
+      </div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="table-wrap">
+        <table>${thead}<tbody>${tableRows(finalProds)}</tbody></table>
+      </div>
+    `;
+  }
 
   const map = Object.fromEntries(all.map(p => [p.id, p]));
   container.querySelectorAll('[data-action="view"]').forEach(b => b.addEventListener('click', () => openRecetaView(map[b.dataset.id])));
@@ -105,7 +119,7 @@ function openRecetaView(prod) {
   const receta = prod.receta || [];
   const totalCosto = receta.reduce((s, r) => s + (r.costoLinea ?? 0), 0);
 
-  const { close } = openModal({
+  const { modal, close } = openModal({
     title: `Receta — ${escapeHtml(prod.nombre)}`,
     size: 'lg',
     body: `
@@ -126,10 +140,13 @@ function openRecetaView(prod) {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Insumo</th><th style="text-align:right">Cantidad</th><th>Unidad</th><th style="text-align:right">Precio/u</th><th style="text-align:right">Costo línea</th></tr></thead>
+          <thead><tr><th>Ingrediente</th><th style="text-align:right">Cantidad</th><th>Unidad</th><th style="text-align:right">Precio/u</th><th style="text-align:right">Costo línea</th></tr></thead>
           <tbody>
             ${receta.map(r => `<tr>
-              <td style="font-weight:500">${escapeHtml(r.insumoNombre)}</td>
+              <td>
+                <div style="font-weight:500">${escapeHtml(r.insumoNombre)}</div>
+                ${r.itemType === 'preparacion' ? '<div class="text-xs text-muted">Preparación</div>' : ''}
+              </td>
               <td style="text-align:right">${formatNumber(r.cantidad, 3)}</td>
               <td class="text-sm text-muted">${r.unidad}</td>
               <td style="text-align:right" class="text-sm">${formatCurrency(r.precioPorUnidad ?? 0)}</td>
@@ -145,16 +162,33 @@ function openRecetaView(prod) {
     `,
     footer: `<button class="btn btn-secondary" id="rv-close">Cerrar</button>`,
   });
-  document.querySelector('#rv-close')?.addEventListener('click', close);
+  modal.querySelector('#rv-close').addEventListener('click', close);
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 async function openProductoModal(prod = null) {
   const isEdit = !!prod;
-  const insumosSnap = await getDocs(query(collection(db, 'insumos'), orderBy('nombre')));
+  const tipoActual = prod?.tipo ?? 'producto';
+
+  // Fetch insumos and preparaciones (exclude current product to avoid circular refs)
+  const [insumosSnap, prepsSnap] = await Promise.all([
+    getDocs(query(collection(db, 'insumos'), orderBy('nombre'))),
+    getDocs(query(collection(db, 'productos'), where('tipo', '==', 'preparacion'), orderBy('nombre'))),
+  ]);
   const insumos = insumosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const insumoMap = Object.fromEntries(insumos.map(i => [i.id, i]));
+  const preps = prepsSnap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(p => p.id !== prod?.id); // exclude self
+
+  // Unified item map: key = "i:id" for insumos, "p:id" for preparaciones
+  const itemMap = {};
+  insumos.forEach(i => {
+    itemMap[`i:${i.id}`] = { ...i, itemType: 'insumo', precioPorUnidad: i.precioPorUnidad ?? 0, unidad: i.unidad ?? 'kg' };
+  });
+  preps.forEach(p => {
+    itemMap[`p:${p.id}`] = { ...p, itemType: 'preparacion', precioPorUnidad: p.costoPorKg ?? 0, unidad: 'kg' };
+  });
 
   let receta = (prod?.receta || []).map(r => ({ ...r }));
 
@@ -165,14 +199,27 @@ async function openProductoModal(prod = null) {
       <div class="form-grid" style="margin-bottom:20px">
         <div class="form-group span-2">
           <label class="form-label">Nombre <span class="required">*</span></label>
-          <input type="text" class="input" id="p-nombre" value="${escapeHtml(prod?.nombre || '')}" placeholder="Ej: Pan francés, Medialuna..." />
+          <input type="text" class="input" id="p-nombre" value="${escapeHtml(prod?.nombre || '')}" placeholder="Ej: Pan francés, Amasijo..." />
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">Tipo</label>
+          <div style="display:flex;gap:8px">
+            <button type="button" data-tipo="producto" class="btn w-full ${tipoActual === 'producto' ? 'btn-primary' : 'btn-secondary'}">
+              🍞 Producto final
+            </button>
+            <button type="button" data-tipo="preparacion" class="btn w-full ${tipoActual === 'preparacion' ? 'btn-primary' : 'btn-secondary'}">
+              ⚙️ Preparación
+            </button>
+          </div>
+          <input type="hidden" id="p-tipo" value="${tipoActual}" />
+          <span class="form-hint">Una preparación es una base (ej: Amasijo) que se usa como ingrediente en otros productos.</span>
         </div>
         <div class="form-group">
           <label class="form-label">Factor de rendimiento</label>
           <input type="number" class="input" id="p-factor" value="${prod?.factorRendimiento ?? 1.2}" min="0.1" step="0.01" />
-          <span class="form-hint">Ej: 1.2 significa que el producto final pesa 1.2× la harina del batch.</span>
+          <span class="form-hint">Ej: 1.2 → el producto final pesa 1.2× la harina del batch.</span>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="precio-group" style="${tipoActual === 'preparacion' ? 'display:none' : ''}">
           <label class="form-label">Precio de venta / kg (opcional)</label>
           <input type="number" class="input" id="p-precio" value="${prod?.precioVenta ?? ''}" min="0" step="0.01" placeholder="0.00" />
         </div>
@@ -190,7 +237,7 @@ async function openProductoModal(prod = null) {
       <div id="receta-table" class="table-wrap" style="margin-bottom:12px">
         <table>
           <thead><tr>
-            <th>Insumo</th><th>Cantidad</th><th>Unidad</th>
+            <th>Ingrediente</th><th>Cantidad</th><th>Unidad</th>
             <th style="text-align:right">Precio/u</th>
             <th style="text-align:right">Costo línea</th>
             <th></th>
@@ -208,18 +255,33 @@ async function openProductoModal(prod = null) {
     footer: `<button class="btn btn-secondary" id="p-cancel">Cancelar</button><button class="btn btn-primary" id="p-save">${isEdit ? 'Guardar' : 'Crear'}</button>`,
   });
 
+  const tipoInput   = modal.querySelector('#p-tipo');
   const recetaBody  = modal.querySelector('#receta-body');
   const factorInput = modal.querySelector('#p-factor');
+  const precioGroup = modal.querySelector('#precio-group');
+
+  // Tipo toggle
+  modal.querySelectorAll('[data-tipo]').forEach(btn => btn.addEventListener('click', () => {
+    tipoInput.value = btn.dataset.tipo;
+    modal.querySelectorAll('[data-tipo]').forEach(b => {
+      b.className = `btn w-full ${b.dataset.tipo === tipoInput.value ? 'btn-primary' : 'btn-secondary'}`;
+    });
+    precioGroup.style.display = tipoInput.value === 'preparacion' ? 'none' : '';
+  }));
 
   const calcCosts = () => {
     receta.forEach(r => {
-      const ins = insumoMap[r.insumoId];
-      r.precioPorUnidad = ins?.precioPorUnidad ?? 0;
+      const key = r.itemType === 'preparacion' ? `p:${r.insumoId}` : `i:${r.insumoId}`;
+      const item = itemMap[key];
+      r.precioPorUnidad = item?.precioPorUnidad ?? 0;
       r.costoLinea = (r.cantidad ?? 0) * r.precioPorUnidad;
-      r.unidad = ins?.unidad ?? r.unidad ?? 'kg';
+      r.unidad = item?.unidad ?? r.unidad ?? 'kg';
     });
     const totalCosto = receta.reduce((s, r) => s + (r.costoLinea ?? 0), 0);
-    const harKg = receta.find(r => insumoMap[r.insumoId]?.unidad === 'kg')?.cantidad ?? 0;
+    const harKg = receta.find(r => {
+      const key = r.itemType === 'preparacion' ? `p:${r.insumoId}` : `i:${r.insumoId}`;
+      return itemMap[key]?.unidad === 'kg';
+    })?.cantidad ?? 0;
     const factor = parseFloat(factorInput.value) || 1.2;
     const rendeKg = harKg * factor;
     modal.querySelector('#calc-total').textContent = formatCurrency(totalCosto);
@@ -228,42 +290,61 @@ async function openProductoModal(prod = null) {
     return { totalCosto, rendeKg, factor };
   };
 
+  const itemOptions = () => `
+    <option value="">Seleccionar...</option>
+    ${insumos.length ? `<optgroup label="Insumos">
+      ${insumos.map(i => `<option value="i:${i.id}">${escapeHtml(i.nombre)}</option>`).join('')}
+    </optgroup>` : ''}
+    ${preps.length ? `<optgroup label="Preparaciones">
+      ${preps.map(p => `<option value="p:${p.id}">${escapeHtml(p.nombre)}</option>`).join('')}
+    </optgroup>` : ''}
+  `;
+
   const renderReceta = () => {
     recetaBody.innerHTML = receta.length === 0
       ? `<tr><td colspan="6" class="text-muted text-sm" style="text-align:center;padding:20px">Sin ingredientes todavía.</td></tr>`
-      : receta.map((r, idx) => `
-          <tr data-idx="${idx}">
-            <td>
-              <select class="select-input" data-field="insumoId" style="min-width:160px">
-                <option value="">Seleccionar...</option>
-                ${insumos.map(i => `<option value="${i.id}" ${i.id===r.insumoId?'selected':''}>${escapeHtml(i.nombre)}</option>`).join('')}
-              </select>
-            </td>
-            <td>
-              <input type="number" class="input" data-field="cantidad" value="${r.cantidad ?? ''}" min="0" step="0.001" style="width:100px" placeholder="0" />
-            </td>
-            <td class="text-sm text-muted" data-unit>${insumoMap[r.insumoId]?.unidad ?? r.unidad ?? '—'}</td>
-            <td style="text-align:right" class="text-sm" data-precio>${formatCurrency(insumoMap[r.insumoId]?.precioPorUnidad ?? 0)}</td>
-            <td style="text-align:right;font-weight:600" data-linea>${formatCurrency(r.costoLinea ?? 0)}</td>
-            <td><button type="button" class="btn-icon" data-del="${idx}">${icon('trash')}</button></td>
-          </tr>
-        `).join('');
+      : receta.map((r, idx) => {
+          const itemKey = r.itemType === 'preparacion' ? `p:${r.insumoId}` : `i:${r.insumoId}`;
+          const item = itemMap[itemKey];
+          return `
+            <tr data-idx="${idx}">
+              <td>
+                <select class="select-input" data-field="itemKey" style="min-width:180px">
+                  ${itemOptions().replace(`value="${itemKey}"`, `value="${itemKey}" selected`)}
+                </select>
+              </td>
+              <td>
+                <input type="number" class="input" data-field="cantidad" value="${r.cantidad ?? ''}" min="0" step="0.001" style="width:100px" placeholder="0" />
+              </td>
+              <td class="text-sm text-muted" data-unit>${item?.unidad ?? r.unidad ?? '—'}</td>
+              <td style="text-align:right" class="text-sm" data-precio>${formatCurrency(item?.precioPorUnidad ?? 0)}</td>
+              <td style="text-align:right;font-weight:600" data-linea>${formatCurrency(r.costoLinea ?? 0)}</td>
+              <td><button type="button" class="btn-icon" data-del="${idx}">${icon('trash')}</button></td>
+            </tr>
+          `;
+        }).join('');
 
     recetaBody.querySelectorAll('[data-field]').forEach(inp => {
       inp.addEventListener('change', () => {
-        const idx  = +inp.closest('tr').dataset.idx;
+        const idx   = +inp.closest('tr').dataset.idx;
         const field = inp.dataset.field;
-        receta[idx][field] = field === 'cantidad' ? parseFloat(inp.value) || 0 : inp.value;
-        if (field === 'insumoId') {
-          const ins = insumoMap[inp.value];
-          receta[idx].insumoNombre = ins?.nombre ?? '';
+
+        if (field === 'itemKey') {
+          const [type, id] = inp.value.split(':');
+          receta[idx].itemType   = type === 'p' ? 'preparacion' : 'insumo';
+          receta[idx].insumoId   = id || '';
+          const item = itemMap[inp.value];
+          receta[idx].insumoNombre = item?.nombre ?? '';
+        } else if (field === 'cantidad') {
+          receta[idx].cantidad = parseFloat(inp.value) || 0;
         }
+
         calcCosts();
-        // Update unit + precio display inline
-        const row = inp.closest('tr');
-        const ins = insumoMap[receta[idx].insumoId];
-        row.querySelector('[data-unit]').textContent  = ins?.unidad ?? '—';
-        row.querySelector('[data-precio]').textContent = formatCurrency(ins?.precioPorUnidad ?? 0);
+        const row  = inp.closest('tr');
+        const key  = receta[idx].itemType === 'preparacion' ? `p:${receta[idx].insumoId}` : `i:${receta[idx].insumoId}`;
+        const item = itemMap[key];
+        row.querySelector('[data-unit]').textContent   = item?.unidad ?? '—';
+        row.querySelector('[data-precio]').textContent = formatCurrency(item?.precioPorUnidad ?? 0);
         row.querySelector('[data-linea]').textContent  = formatCurrency(receta[idx].costoLinea ?? 0);
       });
     });
@@ -278,7 +359,7 @@ async function openProductoModal(prod = null) {
   };
 
   modal.querySelector('#btn-add-ing').addEventListener('click', () => {
-    receta.push({ insumoId: '', insumoNombre: '', cantidad: 0, unidad: 'kg', precioPorUnidad: 0, costoLinea: 0 });
+    receta.push({ insumoId: '', insumoNombre: '', itemType: 'insumo', cantidad: 0, unidad: 'kg', precioPorUnidad: 0, costoLinea: 0 });
     renderReceta();
     calcCosts();
   });
@@ -295,15 +376,17 @@ async function openProductoModal(prod = null) {
     if (receta.some(r => !r.insumoId || !r.cantidad)) { toast('Completá todos los ingredientes.', 'error'); return; }
 
     const { totalCosto, rendeKg, factor } = calcCosts();
+    const tipo = tipoInput.value;
     const btn = modal.querySelector('#p-save');
     setLoading(btn, true);
 
     const data = {
+      tipo,
       nombre,
       descripcion:       modal.querySelector('#p-desc').value.trim(),
       factorRendimiento: factor,
       rendimientoKg:     rendeKg,
-      precioVenta:       parseFloat(modal.querySelector('#p-precio').value) || null,
+      precioVenta:       tipo === 'preparacion' ? null : (parseFloat(modal.querySelector('#p-precio').value) || null),
       costoPorKg:        rendeKg > 0 ? totalCosto / rendeKg : null,
       costoTotalBatch:   totalCosto,
       receta,
