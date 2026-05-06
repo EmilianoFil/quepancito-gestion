@@ -16,6 +16,7 @@ const ROUTES = {
   '/categorias':   () => import(`./modules/categorias.js?v=${V}`),
   '/usuarios':     () => import(`./modules/usuarios.js?v=${V}`),
   '/config':       () => import(`./modules/config.js?v=${V}`),
+  '/pedidos':      () => import(`./modules/pedidos.js?v=${V}`),
 };
 
 const ROUTE_TITLES = {
@@ -32,6 +33,7 @@ const ROUTE_TITLES = {
   '/categorias':  'Categorías',
   '/usuarios':    'Usuarios',
   '/config':      'Configuración',
+  '/pedidos':     'Pedidos',
 };
 
 // Sections that require a specific permission to access

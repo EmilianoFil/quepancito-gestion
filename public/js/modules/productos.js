@@ -172,10 +172,12 @@ async function openProductoModal(prod = null) {
   const tipoActual = prod?.tipo ?? 'producto';
 
   // Fetch insumos and preparaciones (exclude current product to avoid circular refs)
-  const [insumosSnap, prepsSnap] = await Promise.all([
+  const [insumosSnap, prepsSnap, modosSnap] = await Promise.all([
     getDocs(query(collection(db, 'insumos'), orderBy('nombre'))),
     getDocs(query(collection(db, 'productos'), where('tipo', '==', 'preparacion'), orderBy('nombre'))),
+    getDocs(query(collection(db, 'modosVenta'), orderBy('nombre'))),
   ]);
+  const modos = modosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const insumos = insumosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const preps = prepsSnap.docs
     .map(d => ({ id: d.id, ...d.data() }))
@@ -227,6 +229,16 @@ async function openProductoModal(prod = null) {
           <label class="form-label">Descripción</label>
           <input type="text" class="input" id="p-desc" value="${escapeHtml(prod?.descripcion || '')}" placeholder="Descripción opcional" />
         </div>
+        ${modos.length ? `<div class="form-group span-2">
+          <label class="form-label">Modos de venta disponibles</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px" id="modos-checks">
+            ${modos.map(m => `
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border:1px solid var(--c-border);border-radius:6px;font-size:13px">
+                <input type="checkbox" value="${m.id}" ${(prod?.modosVentaIds || []).includes(m.id) ? 'checked' : ''} />
+                ${escapeHtml(m.nombre)} <span class="text-muted text-xs">(${m.pesoKg} kg/u)</span>
+              </label>`).join('')}
+          </div>
+        </div>` : ''}
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -380,10 +392,13 @@ async function openProductoModal(prod = null) {
     const btn = modal.querySelector('#p-save');
     setLoading(btn, true);
 
+    const modosVentaIds = [...modal.querySelectorAll('#modos-checks input:checked')].map(cb => cb.value);
+
     const data = {
       tipo,
       nombre,
       descripcion:       modal.querySelector('#p-desc').value.trim(),
+      modosVentaIds,
       factorRendimiento: factor,
       rendimientoKg:     rendeKg,
       precioVenta:       tipo === 'preparacion' ? null : (parseFloat(modal.querySelector('#p-precio').value) || null),

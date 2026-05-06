@@ -535,6 +535,11 @@ td.actions { width: 1px; white-space: nowrap; }
 .badge-warning { background: var(--c-warning-bg); color: var(--c-warning); }
 .badge-info    { background: var(--c-info-bg);    color: var(--c-info); }
 .badge-neutral { background: var(--c-surface-2);  color: var(--c-text-2); }
+.badge-enviado        { background: #dbeafe; color: #1d4ed8; }
+.badge-confirmado     { background: #dcfce7; color: #15803d; }
+.badge-en_preparacion { background: #fef9c3; color: #a16207; }
+.badge-listo          { background: #e0e7ff; color: #4338ca; }
+.badge-entregado      { background: #f1f5f9; color: #475569; }
 
 /* ─── Modals ─────────────────────────────────────────────────────────────── */
 #modal-backdrop {

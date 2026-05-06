@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuePancito — Ingresá</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">🥖</div>
+      <h1 class="auth-title">QuePancito</h1>
+      <p class="auth-sub">Portal de pedidos</p>
+
+      <div id="error-msg" class="form-error mb-4" style="display:none"></div>
+
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="input" id="email" placeholder="tu@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="input" id="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-login" style="margin-top:8px">Ingresar</button>
+
+      <p style="text-align:center;margin-top:20px;font-size:14px;color:var(--c-text-2)">
+        ¿No tenés cuenta?
+        <a href="registro.html" style="color:var(--c-primary);font-weight:600;text-decoration:none">Registrate</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth } from './js/firebase-config.js';
+    import {
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+    onAuthStateChanged(auth, user => {
+      if (user) window.location.href = 'dashboard.html';
+    });
+
+    const emailEl    = document.getElementById('email');
+    const passwordEl = document.getElementById('password');
+    const btn        = document.getElementById('btn-login');
+    const errEl      = document.getElementById('error-msg');
+
+    const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+
+    btn.addEventListener('click', async () => {
+      errEl.style.display = 'none';
+      const email    = emailEl.value.trim();
+      const password = passwordEl.value;
+      if (!email || !password) { showErr('Completá email y contraseña.'); return; }
+      btn.disabled = true;
+      btn.textContent = 'Ingresando...';
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (e) {
+        const msgs = {
+          'auth/invalid-credential':     'Email o contraseña incorrectos.',
+          'auth/user-not-found':         'Email o contraseña incorrectos.',
+          'auth/wrong-password':         'Email o contraseña incorrectos.',
+          'auth/too-many-requests':      'Demasiados intentos. Esperá unos minutos.',
+          'auth/invalid-email':          'Email inválido.',
+        };
+        showErr(msgs[e.code] || 'Error al ingresar. Intentá de nuevo.');
+        btn.disabled = false;
+        btn.textContent = 'Ingresar';
+      }
+    });
+
+    [emailEl, passwordEl].forEach(el =>
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); })
+    );
+  </script>
+</body>
+</html>

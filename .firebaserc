@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "quepancito-gestion"
-  }
+  },
+  "targets": {
+    "quepancito-gestion": {
+      "hosting": {
+        "admin": [
+          "quepancito-gestion"
+        ],
+        "portal": [
+          "quepancito-pedidos"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

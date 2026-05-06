@@ -14,6 +14,10 @@ service cloud.firestore {
       return isAuth() && userDoc().role == 'admin';
     }
 
+    function isPortalUser() {
+      return isAuth() && exists(/databases/$(database)/documents/proveedoresPortal/$(request.auth.uid));
+    }
+
     function canRead(section) {
       let u = userDoc();
       return u.role == 'admin' || u.permissions.get(section, 'none') in ['read', 'write'];
@@ -70,7 +74,7 @@ service cloud.firestore {
     }
 
     match /productos/{id} {
-      allow read: if isAuth() && canRead('productos');
+      allow read: if isAuth() && (canRead('productos') || isPortalUser());
       allow write: if isAuth() && canWrite('productos');
       match /receta/{rId} {
         allow read: if isAuth() && canRead('productos');
@@ -120,6 +124,48 @@ service cloud.firestore {
     match /listasPrecios/{id} {
       allow read: if isAuth();
       allow write: if isAuth() && canWrite('config');
+    }
+
+    match /modosVenta/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── Portal collections ───────────────────────────────────────────────────
+
+    match /proveedoresPortal/{uid} {
+      allow read: if isAuth() && (request.auth.uid == uid || isAdmin());
+      allow create: if isAuth() && request.auth.uid == uid;
+      allow update: if isAuth() && (request.auth.uid == uid || isAdmin());
+    }
+
+    match /portalSubClientes/{id} {
+      allow read, write: if isAuth() && (
+        resource == null
+          ? request.resource.data.ownerUID == request.auth.uid
+          : resource.data.ownerUID == request.auth.uid || isAdmin()
+      );
+    }
+
+    match /pedidos/{id} {
+      allow read: if isAuth() && (
+        resource.data.ownerUID == request.auth.uid || isAdmin() || canRead('pedidos')
+      );
+      allow create: if isAuth() && request.resource.data.ownerUID == request.auth.uid;
+      allow update: if isAuth() && (
+        resource.data.ownerUID == request.auth.uid || isAdmin() || canWrite('pedidos')
+      );
+      allow delete: if isAuth() && (
+        resource.data.ownerUID == request.auth.uid || isAdmin()
+      );
+    }
+
+    match /pedidosPlantillas/{id} {
+      allow read, write: if isAuth() && (
+        resource == null
+          ? request.resource.data.ownerUID == request.auth.uid
+          : resource.data.ownerUID == request.auth.uid
+      );
     }
   }
 }

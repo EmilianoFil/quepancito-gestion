@@ -1,7 +1,10 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const nodemailer = require("nodemailer");
+const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -212,3 +215,126 @@ exports.weeklyReport = onSchedule({
 
   console.log(`Reporte semanal: ingresos=$${ingresos} egresos=$${egresos}`);
 });
+
+// ── enviarPedido — PDF + email al crear un pedido ─────────────────────────────
+
+const GMAIL_USER = defineSecret("GMAIL_USER");
+const GMAIL_PASS = defineSecret("GMAIL_PASS");
+
+const IS_TEST = true; // cambiar a false para enviar a quepancitopanificadora@gmail.com
+const PROD_EMAIL = "quepancitopanificadora@gmail.com";
+const TEST_EMAIL = "emilianofilgueira@gmail.com";
+
+async function buildPdf(pedido) {
+  const pdfDoc = await PDFDocument.create();
+  const font   = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const bold   = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const margin = 50;
+  const lineH  = 18;
+  let page     = pdfDoc.addPage([595, 842]); // A4
+  let y        = 800;
+
+  const write = (text, x, size = 11, f = font, color = rgb(0, 0, 0)) => {
+    if (y < 60) {
+      page = pdfDoc.addPage([595, 842]);
+      y = 800;
+    }
+    page.drawText(text, { x, y, size, font: f, color });
+  };
+
+  const nextLine = (extra = 0) => { y -= lineH + extra; };
+
+  const fechaPedido = pedido.fechaCreacion?.toDate
+    ? pedido.fechaCreacion.toDate().toLocaleDateString('es-AR')
+    : new Date().toLocaleDateString('es-AR');
+  const fechaEntrega = pedido.fechaEntrega || 'Sin fecha';
+
+  write('QuePancito — Pedido', margin, 18, bold, rgb(0.49, 0.23, 0.93));
+  nextLine(6);
+  write(`Fecha: ${fechaPedido}   Entrega: ${fechaEntrega}`, margin, 10, font, rgb(0.4, 0.4, 0.4));
+  nextLine(4);
+  write(`Solicitado por: ${pedido.ownerNombre || '—'}`, margin, 10, font, rgb(0.4, 0.4, 0.4));
+  nextLine(10);
+
+  // divider
+  page.drawLine({ start: { x: margin, y }, end: { x: 545, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+  nextLine(8);
+
+  for (const linea of (pedido.lineas || [])) {
+    write(linea.subClienteNombre, margin, 12, bold);
+    nextLine(4);
+
+    for (const item of (linea.items || [])) {
+      const kgTxt = ((item.pesoUnitKg || 0) * item.cantidad).toFixed(2);
+      write('☐', margin, 11, font);
+      write(`${item.productoNombre}`, margin + 18, 11, font);
+      write(`${item.modoVentaNombre} × ${item.cantidad} = ${kgTxt} kg`, 320, 11, font, rgb(0.4, 0.4, 0.4));
+      nextLine();
+    }
+    nextLine(6);
+
+    const subKg = (linea.items || []).reduce((s, i) => s + (i.pesoUnitKg || 0) * i.cantidad, 0);
+    write(`Subtotal: ${subKg.toFixed(2)} kg`, margin + 18, 10, font, rgb(0.3, 0.3, 0.3));
+    nextLine(10);
+    page.drawLine({ start: { x: margin, y }, end: { x: 545, y }, thickness: 0.3, color: rgb(0.9, 0.9, 0.9) });
+    nextLine(8);
+  }
+
+  write(`TOTAL: ${(pedido.totalKg || 0).toFixed(2)} kg`, margin, 13, bold, rgb(0.49, 0.23, 0.93));
+
+  return Buffer.from(await pdfDoc.save());
+}
+
+exports.enviarPedido = onDocumentCreated(
+  { document: 'pedidos/{pedidoId}', secrets: [GMAIL_USER, GMAIL_PASS] },
+  async (event) => {
+    const pedido = event.data?.data();
+    if (!pedido) return;
+
+    const pedidoId = event.params.pedidoId;
+    const destino  = IS_TEST ? TEST_EMAIL : PROD_EMAIL;
+
+    // Lookup portal user email for CC
+    let clienteEmail = null;
+    if (pedido.copiaCliente && pedido.ownerUID) {
+      const snap = await db.doc(`proveedoresPortal/${pedido.ownerUID}`).get();
+      clienteEmail = snap.data()?.email || null;
+    }
+
+    const pdfBytes = await buildPdf(pedido);
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: GMAIL_USER.value(), pass: GMAIL_PASS.value() },
+    });
+
+    const fechaPedido = pedido.fechaCreacion?.toDate
+      ? pedido.fechaCreacion.toDate().toLocaleDateString('es-AR')
+      : new Date().toLocaleDateString('es-AR');
+
+    const to  = destino;
+    const cc  = pedido.copiaCliente && clienteEmail ? clienteEmail : undefined;
+    const subject = `Nuevo pedido — ${pedido.ownerNombre} — ${fechaPedido}`;
+    const text = [
+      `Nuevo pedido recibido de ${pedido.ownerNombre}.`,
+      `Fecha de entrega: ${pedido.fechaEntrega || 'Sin especificar'}`,
+      `Total: ${(pedido.totalKg || 0).toFixed(2)} kg`,
+      '',
+      'Se adjunta el detalle en PDF.',
+    ].join('\n');
+
+    await transporter.sendMail({
+      from: `"QuePancito" <${GMAIL_USER.value()}>`,
+      to, cc, subject, text,
+      attachments: [{
+        filename: `pedido-${pedidoId}.pdf`,
+        content: pdfBytes,
+        contentType: 'application/pdf',
+      }],
+    });
+
+    await db.doc(`pedidos/${pedidoId}`).update({ emailEnviado: true });
+    console.log(`Pedido ${pedidoId} enviado a ${to}${cc ? ` CC ${cc}` : ''}`);
+  }
+);

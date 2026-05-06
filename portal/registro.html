@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuePancito — Registrate</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">🥖</div>
+      <h1 class="auth-title">Crear cuenta</h1>
+      <p class="auth-sub">Portal de pedidos QuePancito</p>
+
+      <div id="error-msg" class="form-error mb-4" style="display:none"></div>
+
+      <div class="form-group">
+        <label class="form-label">Nombre del negocio <span style="color:var(--c-danger)">*</span></label>
+        <input type="text" class="input" id="nombre" placeholder="Ej: Almacén López" autocomplete="organization" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email <span style="color:var(--c-danger)">*</span></label>
+        <input type="email" class="input" id="email" placeholder="tu@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teléfono</label>
+        <input type="tel" class="input" id="telefono" placeholder="+54 11 1234-5678" autocomplete="tel" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña <span style="color:var(--c-danger)">*</span></label>
+        <input type="password" class="input" id="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-registro" style="margin-top:8px">Crear cuenta</button>
+
+      <p style="text-align:center;margin-top:20px;font-size:14px;color:var(--c-text-2)">
+        ¿Ya tenés cuenta?
+        <a href="login.html" style="color:var(--c-primary);font-weight:600;text-decoration:none">Ingresá</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from './js/firebase-config.js';
+    import { createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    const btn   = document.getElementById('btn-registro');
+    const errEl = document.getElementById('error-msg');
+    const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+
+    btn.addEventListener('click', async () => {
+      errEl.style.display = 'none';
+      const nombre   = document.getElementById('nombre').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const telefono = document.getElementById('telefono').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!nombre) { showErr('El nombre del negocio es requerido.'); return; }
+      if (!email)  { showErr('El email es requerido.'); return; }
+      if (password.length < 6) { showErr('La contraseña debe tener al menos 6 caracteres.'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Creando cuenta...';
+
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'proveedoresPortal', cred.user.uid), {
+          nombre, email, telefono,
+          createdAt: serverTimestamp(),
+        });
+        window.location.href = 'dashboard.html';
+      } catch (e) {
+        const msgs = {
+          'auth/email-already-in-use': 'Ya existe una cuenta con ese email.',
+          'auth/invalid-email':        'El email no es válido.',
+          'auth/weak-password':        'La contraseña debe tener al menos 6 caracteres.',
+        };
+        showErr(msgs[e.code] || 'Error al registrarse. Intentá de nuevo.');
+        btn.disabled = false;
+        btn.textContent = 'Crear cuenta';
+      }
+    });
+  </script>
+</body>
+</html>
